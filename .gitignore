@@ -1,5 +1,6 @@
 .env
-input_video/
+input_videos/*
 output_videos/
 weights/
 __pycache__
+animal_boundary/

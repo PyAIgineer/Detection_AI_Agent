@@ -28,7 +28,7 @@ MODEL_PATH = "weights/fire_l.pt"
 TARGET_CLASS_ID = 1
 
 # Input Configuration
-VIDEO_PATH = "input_video/fire_video1.mp4"
+VIDEO_PATH = "input_videos/fire_video1.mp4"
 POLYGON_FILE = ""
 
 # Detection Parameters
@@ -308,17 +308,19 @@ def run_detection(event_queue):
             
             # Send detection event to queue (once per video)
             if event_tracker.should_alert_detection(len(detections)):
+                # Send raw facts - agent decides what to do
                 event = {
-                    'type': 'detection',
                     'class_name': model.model.names[TARGET_CLASS_ID],
+                    'confidence': round(float(detections[0][3]), 2) if detections else 0.0,
                     'count': len(detections),
+                    'location': 'in_frame',
                     'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
                     'frame': frame_count
                 }
                 event_queue.put(event)
-                time.sleep(0.01)  # Force thread switch to let agent process immediately
+                time.sleep(0.01)
                 total_events += 1
-                print(f"[DETECTION] 📤 Event sent: {model.model.names[TARGET_CLASS_ID]} detected ({len(detections)} objects)", flush=True)
+                print(f"[DETECTION] Event sent: {model.model.names[TARGET_CLASS_ID]} detected ({len(detections)} objects)", flush=True)
             
             # Handle boundary crossing
             if polygon is not None:
@@ -332,19 +334,21 @@ def run_detection(event_queue):
                     
                     for obj in crossed:
                         if event_tracker.should_alert_crossing():
+                            # Send raw facts - agent decides what to do
                             event = {
-                                'type': 'crossing',
                                 'class_name': obj['name'],
+                                'confidence': round(float(detections[0][3]), 2) if detections else 0.0,
                                 'count': 1,
+                                'location': 'boundary_zone',
                                 'direction': obj['direction'],
                                 'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
                                 'frame': frame_count
                             }
                             event_queue.put(event)
-                            time.sleep(0.01)  # Force thread switch to let agent process immediately
+                            time.sleep(0.01)
                             total_crossings += 1
                             total_events += 1
-                            print(f"[DETECTION] 📤 Event sent: {obj['name']} boundary crossing ({obj['direction']})", flush=True)
+                            print(f"[DETECTION] Event sent: {obj['name']} boundary crossing ({obj['direction']})", flush=True)
                         
                         cv2.putText(frame, f"!!! {obj['name'].upper()} CROSSED BOUNDARY !!!", 
                                   (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)

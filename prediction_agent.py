@@ -1,3 +1,8 @@
+# ==================== PREDICTION_AGENT.PY ====================
+# Agent is the BRAIN of the entire system.
+# Responsibility 1: Receive classifier JSON → decide which YOLO model to run
+# Responsibility 2: Receive detection events → decide severity → send alerts
+
 import os
 import sys
 import json
@@ -8,16 +13,45 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import queue
 
-# Load environment variables
+from config import MODEL_CONFIGS
+
 load_dotenv()
 
-# Force unbuffered output
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
 
 
-# ==================== AGENT SYSTEM PROMPT ====================
-AGENT_SYSTEM_PROMPT = """You are an intelligent security monitoring agent.
+# ==================== ROUTING SYSTEM PROMPT ====================
+ROUTING_SYSTEM_PROMPT = """You are an AI model router for a surveillance detection system.
+
+You receive a JSON output from a video classifier that lists what was detected in the video.
+
+Available individual models (each detects ONE category):
+- "deer"       : detects deer
+- "elephant"   : detects elephant
+- "fire_smoke" : detects fire and smoke
+- "leopard"    : detects leopard
+- "tiger"      : detects tiger
+
+Rules:
+- Select ALL models that match what was detected. You can select multiple.
+- If "fire" or "smoke" detected → include "fire_smoke"
+- If "deer" detected → include "deer"
+- If "elephant" detected → include "elephant"
+- If "leopard" detected → include "leopard"
+- If "tiger" detected → include "tiger"
+- If "person" detected but no matching animal model → still select the closest animal model (e.g. if deer + person, select "deer")
+- If nothing clear detected → select ["elephant"] as safe default
+
+Respond ONLY in this JSON format:
+{
+    "model_keys": ["key1", "key2"],
+    "reason": "short explanation"
+}"""
+
+
+# ==================== ALERT SYSTEM PROMPT ====================
+ALERT_SYSTEM_PROMPT = """You are an intelligent security monitoring agent.
 
 Your job is to analyze raw detection events from a camera feed and decide:
 1. How severe the situation is
@@ -35,7 +69,8 @@ You will receive raw detection data and must respond ONLY in this JSON format:
 
 Severity and action rules:
 - fire, smoke detected → critical → escalate
-- dangerous/wild animal (elephant, leopard, lion, bear) entering boundary → critical → escalate
+- dangerous/wild animal (elephant, leopard, tiger, lion, bear) entering boundary → critical → escalate
+- deer entering boundary → high → email
 - person entering restricted boundary → high → email
 - person detected in frame (no boundary) → medium → email
 - animal detected in frame (no boundary) → medium → email
@@ -51,10 +86,14 @@ Always make a decision. Never ask for clarification. Only return the JSON."""
 
 
 class AlertAgent:
-    """Agent that uses LLM to decide severity and action for each detection event"""
+    """
+    The brain of the detection system.
+    - Decides which YOLO model to run based on classifier output.
+    - Processes detection events and sends appropriate alerts.
+    """
 
     def __init__(self, ready_event=None):
-        # Email Configuration
+        # Email config
         self.email_host = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
         self.email_port = os.getenv('EMAIL_PORT', '587')
         self.email_user = os.getenv('EMAIL_USER')
@@ -63,30 +102,119 @@ class AlertAgent:
 
         openai_api_key = os.getenv('OPENAI_API_KEY')
         self.openai_client = OpenAI(api_key=openai_api_key) if openai_api_key else None
-        
-        # Validation
+
         self.email_enabled = bool(self.email_user and self.email_password)
         self.ready_event = ready_event
 
-        print("[AGENT] Initializing Alert Agent...", flush=True)
-        print(f"[AGENT] Email: {'Enabled' if self.email_enabled else 'Disabled'}", flush=True)
-        print(f"[AGENT] GPT: {'Enabled' if self.openai_client else 'Disabled'}", flush=True)
+        print("[AGENT] Initializing Alert Agent (System Brain)...", flush=True)
+        print(f"[AGENT] Email : {'Enabled' if self.email_enabled else 'Disabled'}", flush=True)
+        print(f"[AGENT] GPT   : {'Enabled' if self.openai_client else 'Disabled'}", flush=True)
         print(f"[AGENT] Recipient: {self.recipient_email}", flush=True)
         print(f"[AGENT] Initialization complete\n", flush=True)
 
 
-    # ==================== AGENT DECISION ====================
+    # ==================== BRAIN: MODEL ROUTING ====================
+    def decide_models(self, classifier_output):
+        """
+        Called by launcher BEFORE detection starts.
+        Returns a LIST of (model_key, model_config) tuples — one per detected category.
+        All selected models will run together on every frame.
+        """
+        print(f"\n{'='*60}", flush=True)
+        print("[AGENT-BRAIN] Classifier output received:", flush=True)
+        print(f"[AGENT-BRAIN] {json.dumps(classifier_output)}", flush=True)
+        print("[AGENT-BRAIN] Making model routing decision...", flush=True)
+
+        if self.openai_client:
+            model_keys = self._llm_routing_decision(classifier_output)
+        else:
+            model_keys = self._fallback_routing_decision(classifier_output)
+
+        # Validate and resolve all keys
+        valid_keys = []
+        for key in model_keys:
+            if key in MODEL_CONFIGS:
+                valid_keys.append(key)
+            else:
+                print(f"[AGENT-BRAIN] WARNING: Unknown model key '{key}', skipping", flush=True)
+
+        if not valid_keys:
+            print("[AGENT-BRAIN] WARNING: No valid models selected, defaulting to 'elephant'", flush=True)
+            valid_keys = ["elephant"]
+
+        selected = [(key, MODEL_CONFIGS[key]) for key in valid_keys]
+
+        print(f"[AGENT-BRAIN] ✓ Models selected ({len(selected)}):", flush=True)
+        for key, cfg in selected:
+            print(f"[AGENT-BRAIN]   - {key} → {cfg['model_path']} | classes: {cfg['target_classes']}", flush=True)
+        print(f"{'='*60}\n", flush=True)
+
+        return selected
+
+    def _llm_routing_decision(self, classifier_output):
+        """Use GPT to decide which models to run — returns list of model keys"""
+        try:
+            response = self.openai_client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": ROUTING_SYSTEM_PROMPT},
+                    {"role": "user", "content": f"Classifier output:\n{json.dumps(classifier_output, indent=2)}"}
+                ],
+                max_tokens=150,
+                temperature=0.1
+            )
+
+            raw = response.choices[0].message.content.strip()
+            decision = json.loads(raw)
+
+            keys = decision.get("model_keys", [])
+            print(f"[AGENT-BRAIN] LLM routing → {keys} | Reason: {decision.get('reason', '')}", flush=True)
+            return keys
+
+        except Exception as e:
+            print(f"[AGENT-BRAIN] GPT routing error: {e} - using fallback", flush=True)
+            return self._fallback_routing_decision(classifier_output)
+
+    def _fallback_routing_decision(self, classifier_output):
+        """Rule-based routing — returns list of model keys"""
+        detected = [d.lower() for d in classifier_output.get("detected", [])]
+
+        animal_map = {
+            "deer":     "deer",
+            "elephant": "elephant",
+            "leopard":  "leopard",
+            "tiger":    "tiger",
+        }
+
+        keys = []
+
+        if "fire" in detected or "smoke" in detected:
+            keys.append("fire_smoke")
+
+        for animal, key in animal_map.items():
+            if animal in detected:
+                keys.append(key)
+
+        if not keys:
+            keys = ["elephant"]  # safe default
+            print("[AGENT-BRAIN] Fallback: nothing matched, defaulting to 'elephant'", flush=True)
+        else:
+            print(f"[AGENT-BRAIN] Fallback routing → {keys}", flush=True)
+
+        return keys
+
+
+    # ==================== BRAIN: ALERT DECISION ====================
     def analyze_and_decide(self, event):
-        """LLM receives raw event and decides severity, action, message"""
+        """LLM receives raw detection event and decides severity, action, message"""
         if not self.openai_client:
-            print("[AGENT] GPT unavailable - using fallback decision", flush=True)
-            return self._fallback_decision(event)
+            return self._fallback_alert_decision(event)
 
         try:
             response = self.openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": AGENT_SYSTEM_PROMPT},
+                    {"role": "system", "content": ALERT_SYSTEM_PROMPT},
                     {"role": "user", "content": f"Raw detection event:\n{json.dumps(event, indent=2)}"}
                 ],
                 max_tokens=300,
@@ -96,7 +224,7 @@ class AlertAgent:
             raw = response.choices[0].message.content.strip()
             decision = json.loads(raw)
 
-            print(f"[AGENT] LLM Decision:", flush=True)
+            print(f"[AGENT] LLM Alert Decision:", flush=True)
             print(f"         Severity : {decision['severity'].upper()}", flush=True)
             print(f"         Action   : {decision['action']}", flush=True)
             print(f"         Reason   : {decision['reason']}", flush=True)
@@ -105,25 +233,25 @@ class AlertAgent:
 
         except json.JSONDecodeError as e:
             print(f"[AGENT] JSON parse error: {e} - using fallback", flush=True)
-            return self._fallback_decision(event)
+            return self._fallback_alert_decision(event)
 
         except Exception as e:
             print(f"[AGENT] GPT error: {e} - using fallback", flush=True)
-            return self._fallback_decision(event)
+            return self._fallback_alert_decision(event)
 
-
-    # ==================== FALLBACK ====================
-    def _fallback_decision(self, event):
-        """Rule-based fallback when GPT is unavailable"""
+    def _fallback_alert_decision(self, event):
+        """Rule-based fallback when GPT unavailable"""
         class_name = event.get('class_name', '').lower()
         confidence = event.get('confidence', 1.0)
         has_boundary = 'direction' in event
+
+        dangerous_animals = ['elephant', 'leopard', 'tiger', 'lion', 'bear']
 
         if confidence < 0.5:
             severity, action = 'low', 'log_only'
         elif class_name in ['fire', 'smoke']:
             severity, action = 'critical', 'escalate'
-        elif class_name in ['elephant', 'leopard', 'lion', 'bear', 'tiger'] and has_boundary:
+        elif class_name in dangerous_animals and has_boundary:
             severity, action = 'critical', 'escalate'
         elif has_boundary:
             severity, action = 'high', 'email'
@@ -185,7 +313,7 @@ This is an automated alert from the AI Detection Agent.
             server.send_message(msg)
             server.quit()
 
-            print(f"[AGENT] Email sent: {decision['subject']}", flush=True)
+            print(f"[AGENT] ✓ Email sent: {decision['subject']}", flush=True)
             return True
 
         except Exception as e:
@@ -197,15 +325,13 @@ This is an automated alert from the AI Detection Agent.
         print(f"[AGENT] Logged (no alert): {event.get('class_name')} | Reason: {decision['reason']}", flush=True)
 
 
-    # ==================== PROCESS EVENT ====================
+    # ==================== PROCESS DETECTION EVENT ====================
     def process_event(self, event):
         """
-        Agent receives raw detection facts.
-        LLM decides severity and action.
-        Agent executes the decision.
+        Responsibility 2: receive raw detection event, decide severity, execute action.
         """
         print(f"\n{'='*60}", flush=True)
-        print(f"[AGENT] Raw event received: {json.dumps(event)}", flush=True)
+        print(f"[AGENT] Detection event received: {json.dumps(event)}", flush=True)
         print(f"{'='*60}", flush=True)
 
         decision = self.analyze_and_decide(event)
@@ -213,16 +339,12 @@ This is an automated alert from the AI Detection Agent.
 
         if action == 'log_only':
             self.log_only(decision, event)
-
         elif action == 'email':
             print(f"[AGENT] Sending email alert...", flush=True)
             self.send_email(decision, event)
-
         elif action == 'escalate':
-            print(f"[AGENT] ESCALATING - Critical situation!", flush=True)
+            print(f"[AGENT] ⚠ ESCALATING - Critical situation!", flush=True)
             self.send_email(decision, event)
-            # Future: SMS, webhook, etc.
-
         else:
             print(f"[AGENT] Unknown action '{action}' - defaulting to log", flush=True)
             self.log_only(decision, event)
@@ -230,16 +352,16 @@ This is an automated alert from the AI Detection Agent.
         print(f"{'='*60}\n", flush=True)
 
 
-    # ==================== MAIN LOOP ====================
+    # ==================== EVENT LOOP ====================
     def run(self, event_queue):
-        """Main agent loop"""
-        print("[AGENT] Entering monitoring loop...", flush=True)
+        """Main agent event loop - listens for detection events from predict.py"""
+        print("[AGENT] Entering detection event monitoring loop...", flush=True)
 
         try:
             if self.ready_event:
                 print("[AGENT] Signaling ready to launcher...", flush=True)
                 self.ready_event.set()
-                print("[AGENT] READY - Listening for events...\n", flush=True)
+                print("[AGENT] READY - Listening for detection events...\n", flush=True)
 
             while True:
                 event = event_queue.get()
@@ -259,7 +381,7 @@ This is an automated alert from the AI Detection Agent.
             print("[AGENT] Agent stopped", flush=True)
 
 
-# ==================== STANDALONE MODE ====================
+# ==================== ENTRY POINT FOR THREAD ====================
 def run_agent(event_queue, ready_event=None):
     agent = AlertAgent(ready_event=ready_event)
     agent.run(event_queue)
@@ -267,4 +389,4 @@ def run_agent(event_queue, ready_event=None):
 
 if __name__ == "__main__":
     print("[INFO] Agent cannot run standalone")
-    print("[INFO] Use launcher.py to start the complete system\n")
+    print("[INFO] Use launcher.py to start the complete system")

@@ -6,6 +6,7 @@ numpy>=1.24.0
 
 # AI & LLM
 openai>=1.0.0
+groq
 
 # Utilities
 python-dotenv>=1.0.0

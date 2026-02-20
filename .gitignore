@@ -4,3 +4,4 @@ output_videos/
 weights/
 __pycache__
 animal_boundary/
+project_structure.md

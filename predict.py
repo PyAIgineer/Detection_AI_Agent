@@ -15,6 +15,7 @@ from collections import defaultdict
 from dotenv import load_dotenv
 import queue
 import json
+import threading
 
 from config import (
     VIDEO_PATH, CONF_THRESHOLD, IOU_THRESHOLD,
@@ -27,7 +28,6 @@ load_dotenv()
 
 # ==================== POLYGON LOADING ====================
 def load_polygon(filename):
-    """Load polygon boundary from JSON file — same as original predict.py"""
     if not filename:
         return None
 
@@ -55,15 +55,12 @@ def load_polygon(filename):
 
 # ==================== SIDE DETECTION ====================
 def get_line_side(point, polygon):
-    """Determine which side of the vertical line a point is on"""
     line_x = int(np.mean(polygon[:, 0]))
     return 'right' if point[0] > line_x else 'left'
 
 
 # ==================== EVENT TRACKER ====================
 class DetectionEventTracker:
-    """One detection alert + one crossing alert per video, same as original"""
-
     def __init__(self):
         self.detection_alert_sent = False
         self.crossing_alerts_sent = 0
@@ -84,8 +81,6 @@ class DetectionEventTracker:
 
 # ==================== BOUNDARY TRACKER ====================
 class BoundaryTracker:
-    """Track objects and detect boundary crossings — same as original predict.py"""
-
     def __init__(self, polygon, label):
         self.polygon = polygon
         self.object_positions = {}
@@ -159,11 +154,6 @@ class BoundaryTracker:
 
 # ==================== MODEL LOADER ====================
 def load_models(selected_models):
-    """
-    Load all selected YOLO models.
-    selected_models: list of (model_key, model_config) from agent.
-    Returns list of (model_key, yolo_model, target_class_ids, all_names).
-    """
     loaded = []
 
     for model_key, cfg in selected_models:
@@ -192,13 +182,22 @@ def load_models(selected_models):
 
 
 # ==================== MAIN DETECTION ====================
-def run_detection(event_queue, selected_models=None):
+def run_detection(event_queue, selected_models=None, video_path=None, stop_event=None):
     """
     Main detection process.
-    selected_models: list of (model_key, model_config) tuples from agent.
-    All models run on every frame.
-    Polygon boundary loaded from config.py POLYGON_FILE (same logic as original predict.py).
+
+    Parameters:
+        event_queue    : Queue to send detection events to the agent.
+        selected_models: List of (model_key, model_config) tuples from agent.
+        video_path     : Path to the video file to process. Falls back to config.VIDEO_PATH.
+        stop_event     : threading.Event — detection loop exits when this is set.
     """
+
+    # ── Resolve video path ───────────────────────────────────────
+    # IMPORTANT: Always use the passed video_path (uploaded file).
+    # Only fall back to config VIDEO_PATH if nothing was passed.
+    active_video_path = video_path if video_path else VIDEO_PATH
+    print(f"[DETECTION] Video path resolved: {active_video_path}", flush=True)
 
     # ── Resolve models ───────────────────────────────────────────
     if not selected_models:
@@ -210,7 +209,6 @@ def run_detection(event_queue, selected_models=None):
     model_label = " + ".join(key for key, *_ in loaded_models)
 
     # ── Load polygon boundary from model config ──────────────────
-    # Use the first polygon_file found among selected models (None = no boundary)
     polygon_file = next(
         (cfg.get("polygon_file") for _, cfg in selected_models if cfg.get("polygon_file")),
         None
@@ -229,9 +227,9 @@ def run_detection(event_queue, selected_models=None):
     event_tracker = DetectionEventTracker()
 
     # ── Open video ───────────────────────────────────────────────
-    cap = cv2.VideoCapture(VIDEO_PATH)
+    cap = cv2.VideoCapture(active_video_path)
     if not cap.isOpened():
-        print(f"[DETECTION] ERROR: Cannot open video: {VIDEO_PATH}")
+        print(f"[DETECTION] ERROR: Cannot open video: {active_video_path}")
         event_queue.put(None)
         return
 
@@ -257,12 +255,11 @@ def run_detection(event_queue, selected_models=None):
     print(f"\n{'='*70}", flush=True)
     print(f"DETECTION SYSTEM — Models: {model_label.upper()}", flush=True)
     print(f"{'='*70}", flush=True)
-    print(f"Video      : {VIDEO_PATH}", flush=True)
+    print(f"Video      : {active_video_path}", flush=True)
     print(f"Resolution : {orig_w}x{orig_h} → {width}x{height} @ {fps} FPS", flush=True)
     print(f"Frames     : {total_frames}", flush=True)
     print(f"Confidence : {CONF_THRESHOLD}", flush=True)
     print(f"Boundary   : {'Yes (' + polygon_file + ')' if polygon is not None else 'No'}", flush=True)
-    print(f"\nPress 'q' to quit", flush=True)
     print(f"{'='*70}\n", flush=True)
 
     frame_count     = 0
@@ -273,6 +270,11 @@ def run_detection(event_queue, selected_models=None):
 
     try:
         while True:
+            # ── Check stop signal ─────────────────────────────────
+            if stop_event and stop_event.is_set():
+                print("[DETECTION] Stop signal received — halting detection.", flush=True)
+                break
+
             ret, frame = cap.read()
             if not ret:
                 break
@@ -303,7 +305,6 @@ def run_detection(event_queue, selected_models=None):
 
                         all_detections.append(((x1, y1, x2, y2), cls_id, cls_name, conf))
 
-                        # Draw bounding box
                         if polygon is not None:
                             centroid = (int((x1 + x2) / 2), y2)
                             side  = get_line_side(centroid, polygon)
@@ -332,7 +333,7 @@ def run_detection(event_queue, selected_models=None):
                 total_events += 1
                 print(f"[DETECTION] Event sent: {first[2]} detected ({len(all_detections)} objects)", flush=True)
 
-            # ── Boundary crossing (same logic as original) ────────
+            # ── Boundary crossing ─────────────────────────────────
             if polygon is not None:
                 overlay = frame.copy()
                 cv2.fillPoly(overlay, [polygon], (0, 0, 255))
@@ -385,8 +386,9 @@ def run_detection(event_queue, selected_models=None):
 
         event_queue.put(None)  # Shutdown signal to agent
 
+        stopped_early = stop_event and stop_event.is_set()
         print(f"\n{'='*70}")
-        print("DETECTION COMPLETE")
+        print("DETECTION COMPLETE" + (" (Stopped by user)" if stopped_early else ""))
         print(f"{'='*70}")
         print(f"[DETECTION] Models used      : {model_label}")
         print(f"[DETECTION] Frames processed : {frame_count}/{total_frames}")
@@ -394,7 +396,6 @@ def run_detection(event_queue, selected_models=None):
         if polygon is not None:
             print(f"[DETECTION] Total crossings  : {total_crossings}")
         print(f"{'='*70}")
-
 
 # ==================== STANDALONE ====================
 if __name__ == "__main__":

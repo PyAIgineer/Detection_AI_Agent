@@ -36,7 +36,6 @@ MODEL_CONFIGS = {
     },
 }
 
-
 # ==================== DETECTION PARAMETERS ====================
 CONF_THRESHOLD  = 0.4
 IOU_THRESHOLD   = 0.45

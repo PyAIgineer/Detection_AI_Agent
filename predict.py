@@ -154,6 +154,11 @@ class BoundaryTracker:
 
 # ==================== MODEL LOADER ====================
 def load_models(selected_models):
+    """
+    Load all selected YOLO models.
+    selected_models: list of (model_key, model_config) from agent.
+    Returns list of (model_key, yolo_model, target_class_ids, all_names).
+    """
     loaded = []
 
     for model_key, cfg in selected_models:

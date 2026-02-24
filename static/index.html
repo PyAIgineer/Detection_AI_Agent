@@ -39,12 +39,10 @@
 
         /* ========== SIDEBAR ========== */
         .sidebar {
-            width: 70px;
-            background: var(--sidebar-bg);
+            width: 70px; background: var(--sidebar-bg);
             display: flex; flex-direction: column; align-items: center;
             padding: 18px 0; gap: 4px; flex-shrink: 0;
-            box-shadow: 4px 0 20px rgba(0,0,0,0.13);
-            z-index: 100;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.13); z-index: 100;
         }
         .logo {
             width: 40px; height: 40px; background: var(--accent);
@@ -73,15 +71,12 @@
         }
         .notif {
             width: 34px; height: 34px; border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.12);
-            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.07);
             display: flex; align-items: center; justify-content: center;
             font-size: 0.95em; color: rgba(255,255,255,0.55); position: relative; cursor: pointer;
         }
-        .ndot {
-            position: absolute; top: 5px; right: 5px; width: 8px; height: 8px;
-            background: var(--accent3); border-radius: 50%; border: 2px solid var(--sidebar-bg);
-        }
+        .ndot { position: absolute; top: 5px; right: 5px; width: 8px; height: 8px;
+                background: var(--accent3); border-radius: 50%; border: 2px solid var(--sidebar-bg); }
         .avatar {
             width: 36px; height: 36px; border-radius: 50%;
             background: linear-gradient(135deg, var(--accent), var(--accent2));
@@ -131,7 +126,6 @@
         /* ========== MAIN ========== */
         .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 
-        /* TOPBAR */
         .topbar {
             height: 60px; background: var(--surface);
             border-bottom: 1px solid var(--border);
@@ -154,116 +148,166 @@
         }
         .gb.active, .gb:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-        /* ========== TAB CONTENT ========== */
+        /* ========== TABS ========== */
         .tab { display: none; flex: 1; overflow: hidden; }
         .tab.active { display: flex; flex-direction: column; overflow: hidden; }
 
-        /* ========== MONITORING TAB ========== */
-        .mon-scroll {
-            flex: 1; overflow-y: auto; padding: 18px 20px;
-        }
+        /* ========== MONITORING ========== */
+        .mon-scroll { flex: 1; overflow-y: auto; padding: 18px 20px; }
         .mon-scroll::-webkit-scrollbar { width: 5px; }
         .mon-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-        /* Grid: cameras + upload tile together */
-        .feed-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 14px;
-        }
+        .feed-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
         .feed-grid.g3 { grid-template-columns: repeat(3, 1fr); }
         .feed-grid.g1 { grid-template-columns: 1fr; }
 
-        /* Camera feed tile */
+        /* ========== CAMERA TILE ========== */
         .cam-tile {
-            background: #1a1f36;
-            border-radius: var(--r);
+            background: #1a1f36; border-radius: var(--r);
             overflow: hidden; position: relative;
             aspect-ratio: 16/10;
-            cursor: pointer;
             transition: transform 0.18s, box-shadow 0.18s;
             box-shadow: var(--shadow);
         }
         .cam-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+        /* z-index layers: placeholder/feed=1, stats=5, cam-bar=10, det-panel=20 */
+        .cam-feed {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%; object-fit: cover;
+            z-index: 1;
+        }
+
         .cam-placeholder {
+            position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
             background: linear-gradient(135deg, #1e2d5a 0%, #263666 100%);
             display: flex; align-items: center; justify-content: center;
             flex-direction: column; gap: 9px; color: rgba(255,255,255,0.22);
+            z-index: 1;
         }
         .cam-placeholder .big { font-size: 2.4em; }
         .cam-placeholder p { font-size: 0.78em; font-weight: 500; }
+
         .cam-bar {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            padding: 9px 13px;
+            position: absolute; bottom: 0; left: 0; right: 0; padding: 9px 13px;
             background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 100%);
             display: flex; align-items: center; justify-content: space-between;
+            z-index: 10;
         }
-        .cam-label {
-            font-size: 0.76em; font-weight: 600; color: #fff;
-            display: flex; align-items: center; gap: 6px;
-        }
+        .cam-label { font-size: 0.76em; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 6px; }
         .live-badge {
             font-size: 0.62em; font-weight: 700; padding: 2px 6px;
-            border-radius: 4px; letter-spacing: 0.04em;
-            animation: blink 2s infinite;
+            border-radius: 4px; letter-spacing: 0.04em; animation: blink 2s infinite;
         }
         .lb-live    { background: var(--accent3); color: #fff; }
         .lb-warn    { background: var(--warn); color: #fff; }
         .lb-offline { background: #555; color: #ccc; }
+        .lb-running { background: var(--accent); color: #fff; }
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.5} }
-        .gear-btn { color: rgba(255,255,255,0.5); font-size: 0.85em; cursor: pointer; }
-        .gear-btn:hover { color: #fff; }
-        .alert-pin {
-            position: absolute; top: 9px; right: 9px;
-            background: var(--accent3); color: #fff;
-            font-size: 0.68em; font-weight: 700; padding: 3px 8px;
-            border-radius: 18px; box-shadow: 0 2px 8px rgba(247,99,77,0.4);
+
+        .gear-btn {
+            color: rgba(255,255,255,0.6); font-size: 0.9em; cursor: pointer;
+            padding: 4px 6px; border-radius: 5px; transition: all 0.13s; z-index: 10; position: relative;
+        }
+        .gear-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+        /* Detection stats overlay (top-left when running) */
+        .det-stats { position: absolute; top: 9px; left: 9px; display: flex; gap: 5px; z-index: 5; }
+        .dstat {
+            background: rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 5px; padding: 2px 7px;
+            font-size: 0.65em; font-weight: 700; color: #fff; font-family: 'DM Mono', monospace;
+        }
+        .dstat.green { color: var(--accent2); }
+
+        /* ========== DETECTION PANEL (per-tile overlay) ========== */
+        .det-panel {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 20, 40, 0.94);
+            display: none; flex-direction: column; padding: 14px; z-index: 20;
+        }
+        .det-panel.open { display: flex; }
+
+        .dp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .dp-title { font-size: 0.84em; font-weight: 700; color: #fff; }
+        .dp-close {
+            width: 26px; height: 26px; border-radius: 6px;
+            background: rgba(255,255,255,0.1); border: none;
+            color: rgba(255,255,255,0.7); cursor: pointer; font-size: 0.9em;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .dp-close:hover { background: var(--accent3); color: #fff; }
+
+        .dp-label {
+            font-size: 0.7em; font-weight: 600; color: rgba(255,255,255,0.45);
+            text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px;
         }
 
-        /* ========== UPLOAD TILE (same aspect as cam tile) ========== */
+        .model-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; flex: 1; overflow-y: auto; }
+        .model-item {
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 7px; padding: 7px 10px; cursor: pointer; transition: all 0.14s;
+        }
+        .model-item:hover { background: rgba(61,90,241,0.25); border-color: rgba(61,90,241,0.5); }
+        .model-item.checked { background: rgba(61,90,241,0.3); border-color: var(--accent); }
+        .model-item input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+        .model-item-text { flex: 1; }
+        .model-name { font-size: 0.78em; font-weight: 600; color: #fff; text-transform: capitalize; }
+        .model-classes { font-size: 0.67em; color: rgba(255,255,255,0.45); margin-top: 1px; }
+
+        .dp-footer { display: flex; gap: 7px; margin-top: 4px; }
+        .dp-btn {
+            flex: 1; padding: 8px 10px; border-radius: var(--rs); border: none;
+            font-family: inherit; font-size: 0.78em; font-weight: 700;
+            cursor: pointer; transition: all 0.16s;
+        }
+        .dp-btn-start { background: var(--accent); color: #fff; }
+        .dp-btn-start:hover:not(:disabled) { background: #3149d4; }
+        .dp-btn-start:disabled { background: #3a4060; color: #666; cursor: not-allowed; }
+        .dp-btn-stop { background: var(--accent3); color: #fff; }
+        .dp-btn-stop:hover:not(:disabled) { background: #e8452d; }
+        .dp-btn-stop:disabled { background: #3a4060; color: #666; cursor: not-allowed; }
+
+        .dp-status { font-size: 0.68em; color: rgba(255,255,255,0.45); text-align: center; margin-top: 6px; min-height: 14px; }
+        .dp-status.ok  { color: var(--accent2); }
+        .dp-status.err { color: var(--accent3); }
+
+        /* ========== UPLOAD TILE ========== */
         .upload-tile {
-            aspect-ratio: 16/10;
-            border-radius: var(--r);
-            background: var(--surface);
-            border: 2px dashed var(--border);
-            display: flex; flex-direction: column;
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            transition: border-color 0.18s, box-shadow 0.18s;
+            aspect-ratio: 16/10; border-radius: var(--r);
+            background: var(--surface); border: 2px dashed var(--border);
+            display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: var(--shadow); transition: border-color 0.18s, box-shadow 0.18s;
         }
         .upload-tile:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); }
         .upload-tile.dragover { border-color: var(--accent); background: #eef1ff; }
-
         .ut-inner {
             flex: 1; display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            padding: 16px 20px; gap: 10px; cursor: pointer;
-            text-align: center;
+            padding: 16px 20px; gap: 10px; cursor: pointer; text-align: center;
         }
         .ut-icon { font-size: 2.4em; }
         .ut-text { font-size: 0.82em; color: var(--muted); line-height: 1.5; }
         .ut-text strong { color: var(--text); font-weight: 600; }
         .ut-formats { font-size: 0.72em; color: var(--muted); }
         input[type="file"] { display: none; }
-
         .ut-footer {
-            border-top: 1px solid var(--border);
-            padding: 10px 14px;
+            border-top: 1px solid var(--border); padding: 10px 14px;
             display: flex; gap: 8px; background: var(--surface2);
         }
         .btn {
-            flex: 1; padding: 9px 12px;
-            border-radius: var(--rs); border: none;
+            flex: 1; padding: 9px 12px; border-radius: var(--rs); border: none;
             font-family: inherit; font-size: 0.82em; font-weight: 600;
             cursor: pointer; transition: all 0.16s;
             display: inline-flex; align-items: center; justify-content: center; gap: 5px;
         }
         .btn-p { background: var(--accent); color: #fff; box-shadow: 0 3px 12px rgba(61,90,241,0.28); }
-        .btn-p:hover { background: #3149d4; }
+        .btn-p:hover:not(:disabled) { background: #3149d4; }
         .btn-p:disabled { background: #c5cbdf; box-shadow: none; cursor: not-allowed; }
         .btn-d { background: var(--accent3); color: #fff; }
-        .btn-d:hover { background: #e8452d; }
+        .btn-d:hover:not(:disabled) { background: #e8452d; }
         .btn-d:disabled { background: #c5cbdf; cursor: not-allowed; }
         .btn-s { background: var(--accent2); color: #fff; }
         .btn-s:hover { background: #00a891; }
@@ -276,107 +320,54 @@
         .btn-sm-danger:hover { background: #e8452d; }
 
         /* ========== STATUS BADGES ========== */
-        .sbadge {
-            display: inline-flex; align-items: center; padding: 2px 9px;
-            border-radius: 18px; font-size: 0.76em; font-weight: 700;
-        }
+        .sbadge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 18px; font-size: 0.76em; font-weight: 700; }
         .s-pending   { background: #fff8e6; color: #b07800; }
         .s-running   { background: #eef1ff; color: var(--accent); }
         .s-completed { background: #e6faf5; color: #007a5e; }
         .s-failed    { background: #fff0ee; color: #c0321d; }
         .s-stopped   { background: #fff3e6; color: #b05a00; }
-
         .dtag { display: inline-flex; background: #e6faf5; color: #007a5e; padding: 2px 7px; border-radius: 11px; font-size: 0.74em; font-weight: 600; margin: 1px 2px; }
         .mtag { display: inline-flex; background: #eef1ff; color: var(--accent); padding: 2px 7px; border-radius: 11px; font-size: 0.74em; font-weight: 600; margin: 1px 2px; }
 
-        /* ========== ANALYTICS TAB ========== */
-        .analytics-scroll {
-            flex: 1; overflow-y: auto; padding: 22px;
-            display: flex; flex-direction: column; gap: 18px;
-        }
+        /* ========== ANALYTICS ========== */
+        .analytics-scroll { flex: 1; overflow-y: auto; padding: 22px; display: flex; flex-direction: column; gap: 18px; }
         .analytics-scroll::-webkit-scrollbar { width: 5px; }
         .analytics-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-        .card {
-            background: var(--surface); border-radius: var(--r);
-            padding: 18px 20px; box-shadow: var(--shadow); border: 1px solid var(--border);
-        }
-        .card-head {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 14px; gap: 8px;
-        }
+        .card { background: var(--surface); border-radius: var(--r); padding: 18px 20px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+        .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 8px; }
         .card-head-left { display: flex; align-items: center; gap: 8px; font-size: 0.92em; font-weight: 700; }
         .cicon { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 0.85em; }
-        .ci-b { background: #eef1ff; }
-        .ci-g { background: #e6faf5; }
-        .ci-o { background: #fff8e6; }
-
+        .ci-b { background: #eef1ff; } .ci-g { background: #e6faf5; } .ci-o { background: #fff8e6; }
         .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 13px; }
-        .scard {
-            background: var(--surface2); border: 1px solid var(--border);
-            border-radius: var(--rs); padding: 15px 17px; position: relative; overflow: hidden;
-        }
+        .scard { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--rs); padding: 15px 17px; position: relative; overflow: hidden; }
         .scard::before { content:''; position:absolute; top:0;left:0;right:0; height:3px; }
-        .sc-b::before { background: var(--accent); }
-        .sc-g::before { background: var(--accent2); }
-        .sc-r::before { background: var(--accent3); }
+        .sc-b::before { background: var(--accent); } .sc-g::before { background: var(--accent2); } .sc-r::before { background: var(--accent3); }
         .sval { font-size: 1.9em; font-weight: 700; line-height: 1; font-family: 'DM Mono', monospace; }
         .slbl { font-size: 0.73em; color: var(--muted); margin-top: 5px; font-weight: 500; }
-
         .a2col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .col-full { grid-column: 1/-1; }
         .chart-wrap { position: relative; height: 230px; margin-top: 8px; }
-
-        /* Logs in analytics */
         .logs-box {
-            background: #0f172a; color: #94a3b8;
-            padding: 12px 16px; border-radius: var(--rs);
+            background: #0f172a; color: #94a3b8; padding: 12px 16px; border-radius: var(--rs);
             font-family: 'DM Mono', monospace; font-size: 0.76em;
-            height: 260px; overflow-y: auto; line-height: 1.65;
-            border: 1px solid #1e293b;
+            height: 260px; overflow-y: auto; line-height: 1.65; border: 1px solid #1e293b;
         }
         .logs-box::-webkit-scrollbar { width: 4px; }
         .logs-box::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2px; }
         .le { margin-bottom: 1px; }
-        .ln  { color: #94a3b8; }
-        .lc  { color: #7dd3fc; }
-        .lab { color: #c4b5fd; }
-        .la  { color: #fdba74; }
-        .ld  { color: #86efac; }
-        .lp  { color: #fde68a; }
-        .ls  { color: #fde68a; font-weight: bold; }
-        .le2 { color: #fca5a5; }
-        .lsuc{ color: #6ee7b7; font-weight: bold; }
-        .lw  { color: #fdba74; }
-        .ldiv{ color: #1e293b; }
-
-        /* Task status block inside analytics */
-        .task-block {
-            background: var(--surface2); border: 1px solid var(--border);
-            border-radius: var(--rs); padding: 12px 14px;
-        }
+        .ln{color:#94a3b8;} .lc{color:#7dd3fc;} .lab{color:#c4b5fd;} .la{color:#fdba74;} .ld{color:#86efac;}
+        .lp{color:#fde68a;} .ls{color:#fde68a;font-weight:bold;} .le2{color:#fca5a5;} .lsuc{color:#6ee7b7;font-weight:bold;}
+        .lw{color:#fdba74;} .ldiv{color:#1e293b;}
+        .task-block { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--rs); padding: 12px 14px; }
         .trow { display: flex; align-items: flex-start; gap: 8px; font-size: 0.8em; margin-bottom: 6px; flex-wrap: wrap; }
         .trow:last-child { margin-bottom: 0; }
         .tlbl { color: var(--muted); font-weight: 600; min-width: 60px; flex-shrink: 0; }
-
-        /* History table */
         .htable { width: 100%; border-collapse: collapse; font-size: 0.8em; }
-        .htable th {
-            background: var(--surface2); color: var(--muted); font-weight: 600;
-            padding: 9px 13px; text-align: left; border-bottom: 1px solid var(--border);
-            font-size: 0.74em; text-transform: uppercase; letter-spacing: 0.04em;
-        }
+        .htable th { background: var(--surface2); color: var(--muted); font-weight: 600; padding: 9px 13px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.74em; text-transform: uppercase; letter-spacing: 0.04em; }
         .htable td { padding: 9px 13px; border-bottom: 1px solid var(--border); }
         .htable tr:hover td { background: var(--surface2); }
-        .htable code {
-            background: var(--surface2); border: 1px solid var(--border);
-            padding: 2px 5px; border-radius: 4px; font-family: 'DM Mono', monospace;
-            font-size: 0.87em; color: var(--accent);
-        }
-
-        /* Video preview */
+        .htable code { background: var(--surface2); border: 1px solid var(--border); padding: 2px 5px; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 0.87em; color: var(--accent); }
         .vid-prev { width: 100%; border-radius: var(--rs); margin-top: 8px; }
-
         .hidden { display: none !important; }
 
         @media (max-width: 960px) {
@@ -393,18 +384,10 @@
 <div class="sidebar">
     <div class="logo">🎯</div>
     <nav class="nav">
-        <div class="ni active" onclick="switchTab('live')" id="nav-live">
-            📷 <span class="tip">Live Monitoring</span>
-        </div>
-        <div class="ni" onclick="switchTab('analytics')" id="nav-analytics">
-            📊 <span class="tip">Analytics</span>
-        </div>
-        <div class="ni" style="margin-top:8px;">
-            🗺️ <span class="tip">Map View</span>
-        </div>
-        <div class="ni">
-            ⚙️ <span class="tip">Settings</span>
-        </div>
+        <div class="ni active" onclick="switchTab('live')" id="nav-live">📷<span class="tip">Live Monitoring</span></div>
+        <div class="ni" onclick="switchTab('analytics')" id="nav-analytics">📊<span class="tip">Analytics</span></div>
+        <div class="ni" style="margin-top:8px;">🗺️<span class="tip">Map View</span></div>
+        <div class="ni">⚙️<span class="tip">Settings</span></div>
     </nav>
     <div class="sb-bottom">
         <div class="notif">🔔<div class="ndot"></div></div>
@@ -422,32 +405,14 @@
         </div>
     </div>
     <div class="cl-scroll" id="camListEl">
-        <div class="grplabel">Main Entrance</div>
-        <div class="citem active"><div class="dot on"></div><span class="cname">CCTV 01</span></div>
-        <div class="citem"><div class="dot on"></div><span class="cname">CCTV 02</span></div>
-        <div class="citem"><div class="dot wn"></div><span class="cname">CCTV 03</span></div>
-        <div class="citem"><div class="dot on"></div><span class="cname">CCTV 04</span></div>
-        <div class="citem"><div class="dot on"></div><span class="cname">CCTV 05</span></div>
-        <div class="citem"><div class="dot off"></div><span class="cname">CCTV 06</span></div>
-        <div class="citem"><div class="dot on"></div><span class="cname">CCTV 07</span></div>
-        <div class="grplabel">Office Area</div>
-        <div class="citem"><div class="dot on"></div><span class="cname">CCTV 08</span></div>
-        <div class="citem"><div class="dot on"></div><span class="cname">CCTV 09</span></div>
-        <div class="citem"><div class="dot on"></div><span class="cname">CCTV 10</span></div>
-        <div class="grplabel">Server Room</div>
-        <div class="citem"><div class="dot on"></div><span class="cname">CCTV 11</span></div>
-        <div class="citem"><div class="dot wn"></div><span class="cname">CCTV 12</span></div>
-        <div class="grplabel">Parking Area</div>
-        <div class="citem"><div class="dot on"></div><span class="cname">CCTV 13</span></div>
-        <div class="citem"><div class="dot on"></div><span class="cname">CCTV 14</span></div>
-        <div class="citem"><div class="dot off"></div><span class="cname">CCTV 15</span></div>
+        <div class="grplabel">RTSP Cameras</div>
+        <!-- Populated by JS from /rtsp/cameras -->
     </div>
 </div>
 
 <!-- ========== MAIN ========== -->
 <div class="main">
 
-    <!-- TOPBAR -->
     <div class="topbar">
         <span class="tb-title" id="tabTitle">Live Monitoring</span>
         <div class="tb-date">
@@ -467,62 +432,9 @@
         <div class="mon-scroll">
             <div class="feed-grid" id="feedGrid">
 
-                <!-- CAM 01 -->
-                <div class="cam-tile">
-                    <div class="cam-placeholder"><div class="big">📹</div><p>CCTV 01 — Live</p></div>
-                    <div class="alert-pin">⚠ Motion</div>
-                    <div class="cam-bar">
-                        <span class="cam-label"><span class="dot on"></span>CCTV 01 — Main Entrance<span class="live-badge lb-live">LIVE</span></span>
-                        <span class="gear-btn">⚙</span>
-                    </div>
-                </div>
+                <!-- Camera tiles injected dynamically by dashboard.js -->
 
-                <!-- CAM 02 -->
-                <div class="cam-tile">
-                    <div class="cam-placeholder"><div class="big">📹</div><p>CCTV 02 — Live</p></div>
-                    <div class="cam-bar">
-                        <span class="cam-label"><span class="dot on"></span>CCTV 02 — Main Entrance<span class="live-badge lb-live">LIVE</span></span>
-                        <span class="gear-btn">⚙</span>
-                    </div>
-                </div>
-
-                <!-- CAM 03 -->
-                <div class="cam-tile">
-                    <div class="cam-placeholder"><div class="big">📹</div><p>CCTV 03 — Warning</p></div>
-                    <div class="cam-bar">
-                        <span class="cam-label"><span class="dot wn"></span>CCTV 03 — Office Area<span class="live-badge lb-warn">WARN</span></span>
-                        <span class="gear-btn">⚙</span>
-                    </div>
-                </div>
-
-                <!-- CAM 04 -->
-                <div class="cam-tile">
-                    <div class="cam-placeholder"><div class="big">📹</div><p>CCTV 04 — Live</p></div>
-                    <div class="cam-bar">
-                        <span class="cam-label"><span class="dot on"></span>CCTV 04 — Office Area<span class="live-badge lb-live">LIVE</span></span>
-                        <span class="gear-btn">⚙</span>
-                    </div>
-                </div>
-
-                <!-- CAM 05 -->
-                <div class="cam-tile">
-                    <div class="cam-placeholder"><div class="big">📹</div><p>CCTV 05 — Live</p></div>
-                    <div class="cam-bar">
-                        <span class="cam-label"><span class="dot on"></span>CCTV 05 — Server Room<span class="live-badge lb-live">LIVE</span></span>
-                        <span class="gear-btn">⚙</span>
-                    </div>
-                </div>
-
-                <!-- CAM 06 OFFLINE -->
-                <div class="cam-tile">
-                    <div class="cam-placeholder" style="opacity:0.4;"><div class="big">🔴</div><p>CCTV 06 — Offline</p></div>
-                    <div class="cam-bar">
-                        <span class="cam-label"><span class="dot off"></span>CCTV 06 — Parking<span class="live-badge lb-offline">OFFLINE</span></span>
-                        <span class="gear-btn">⚙</span>
-                    </div>
-                </div>
-
-                <!-- ===== UPLOAD & DETECT TILE (same size as camera) ===== -->
+                <!-- ===== UPLOAD & DETECT TILE ===== -->
                 <div class="upload-tile" id="uploadTile">
                     <div class="ut-inner" id="uploadZone">
                         <div class="ut-icon">📤</div>
@@ -546,93 +458,45 @@
     <!-- ======= TAB: ANALYTICS ======= -->
     <div class="tab" id="tab-analytics">
         <div class="analytics-scroll">
-
-            <!-- Stats row -->
             <div class="stats-row">
-                <div class="scard sc-b">
-                    <div class="sval" id="totalDetections">0</div>
-                    <div class="slbl">Total Detections</div>
-                </div>
-                <div class="scard sc-g">
-                    <div class="sval" id="successRate">0%</div>
-                    <div class="slbl">Success Rate</div>
-                </div>
-                <div class="scard sc-r">
-                    <div class="sval" id="activeTasks">0</div>
-                    <div class="slbl">Active Tasks</div>
-                </div>
+                <div class="scard sc-b"><div class="sval" id="totalDetections">0</div><div class="slbl">Total Detections</div></div>
+                <div class="scard sc-g"><div class="sval" id="successRate">0%</div><div class="slbl">Success Rate</div></div>
+                <div class="scard sc-r"><div class="sval" id="activeTasks">0</div><div class="slbl">Active Tasks</div></div>
             </div>
 
-            <!-- Task status + logs row -->
             <div class="a2col">
-
-                <!-- Current task status -->
                 <div class="card">
-                    <div class="card-head">
-                        <div class="card-head-left"><div class="cicon ci-b">📋</div>Task Status</div>
-                    </div>
-                    <div id="currentTask">
-                        <div class="task-block">
-                            <div class="trow">
-                                <span class="tlbl">Task ID</span>
-                                <code id="taskId" style="font-size:0.8em;word-break:break-all;font-family:'DM Mono',monospace;">—</code>
-                            </div>
-                            <div class="trow">
-                                <span class="tlbl">Status</span>
-                                <span id="taskStatus"><span class="sbadge s-pending">IDLE</span></span>
-                            </div>
-                            <div id="classifierResult" class="hidden">
-                                <div class="trow">
-                                    <span class="tlbl">Detected</span>
-                                    <span id="detectedItems"></span>
-                                </div>
-                                <div class="trow">
-                                    <span class="tlbl">Models</span>
-                                    <span id="selectedModels"></span>
-                                </div>
-                            </div>
+                    <div class="card-head"><div class="card-head-left"><div class="cicon ci-b">📋</div>Task Status</div></div>
+                    <div class="task-block">
+                        <div class="trow"><span class="tlbl">Task ID</span><code id="taskId" style="font-size:0.8em;word-break:break-all;font-family:'DM Mono',monospace;">—</code></div>
+                        <div class="trow"><span class="tlbl">Status</span><span id="taskStatus"><span class="sbadge s-pending">IDLE</span></span></div>
+                        <div id="classifierResult" class="hidden">
+                            <div class="trow"><span class="tlbl">Detected</span><span id="detectedItems"></span></div>
+                            <div class="trow"><span class="tlbl">Models</span><span id="selectedModels"></span></div>
                         </div>
                     </div>
-
-                    <!-- Output video (appears after completion) -->
                     <div id="outputSection" class="hidden" style="margin-top:14px;">
                         <div style="font-size:0.82em;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px;"><div class="cicon ci-g" style="width:22px;height:22px;font-size:0.75em;">🎬</div>Detection Output</div>
                         <video id="outputVideo" class="vid-prev" controls></video>
-                        <div style="margin-top:8px;">
-                            <button class="btn btn-s" id="downloadBtn" style="flex:unset;width:100%;">⬇ Download Output</button>
-                        </div>
+                        <div style="margin-top:8px;"><button class="btn btn-s" id="downloadBtn" style="flex:unset;width:100%;">⬇ Download Output</button></div>
                     </div>
                 </div>
 
-                <!-- Real-time logs -->
                 <div class="card">
-                    <div class="card-head">
-                        <div class="card-head-left"><div class="cicon ci-b">📝</div>Real-time Logs</div>
-                    </div>
-                    <div class="logs-box" id="logsContainer">
-                        <div class="le ln">Waiting for detection task...</div>
-                    </div>
+                    <div class="card-head"><div class="card-head-left"><div class="cicon ci-b">📝</div>Real-time Logs</div></div>
+                    <div class="logs-box" id="logsContainer"><div class="le ln">Waiting for detection task...</div></div>
                 </div>
 
-                <!-- Model usage chart -->
                 <div class="card">
-                    <div class="card-head">
-                        <div class="card-head-left"><div class="cicon ci-b">📊</div>Model Usage</div>
-                    </div>
-                    <div class="chart-wrap">
-                        <canvas id="modelUsageChart"></canvas>
-                    </div>
+                    <div class="card-head"><div class="card-head-left"><div class="cicon ci-b">📊</div>Model Usage</div></div>
+                    <div class="chart-wrap"><canvas id="modelUsageChart"></canvas></div>
                 </div>
 
-                <!-- Detection summary -->
                 <div class="card">
-                    <div class="card-head">
-                        <div class="card-head-left"><div class="cicon ci-g">📈</div>Detection Summary</div>
-                    </div>
+                    <div class="card-head"><div class="card-head-left"><div class="cicon ci-g">📈</div>Detection Summary</div></div>
                     <p style="color:var(--muted);font-size:0.84em;margin-top:6px;">Run detections to see summary trends here.</p>
                 </div>
 
-                <!-- History table — full width -->
                 <div class="card col-full">
                     <div class="card-head">
                         <div class="card-head-left"><div class="cicon ci-o">🗂️</div>Detection History</div>
@@ -640,19 +504,13 @@
                     </div>
                     <div style="overflow-x:auto;">
                         <table class="htable">
-                            <thead>
-                                <tr>
-                                    <th>Task ID</th><th>Video</th><th>Status</th>
-                                    <th>Detected</th><th>Models</th><th>Completed At</th>
-                                </tr>
-                            </thead>
+                            <thead><tr><th>Task ID</th><th>Video</th><th>Status</th><th>Detected</th><th>Models</th><th>Completed At</th></tr></thead>
                             <tbody id="historyBody">
                                 <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px;">No detection history yet</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
@@ -661,7 +519,6 @@
 
 <script src="/static/dashboard.js"></script>
 <script>
-    // Tab switching
     function switchTab(name) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.ni[id^="nav-"]').forEach(n => n.classList.remove('active'));
@@ -671,29 +528,22 @@
         document.getElementById('tabTitle').textContent = { live:'Live Monitoring', analytics:'Analytics' }[name] || name;
         document.getElementById('gridToggle').style.display = name === 'live' ? 'flex' : 'none';
     }
-
-    // Grid toggle
     function setGrid(cols) {
         const g = document.getElementById('feedGrid');
         g.className = 'feed-grid' + (cols===3?' g3':cols===1?' g1':'');
         document.querySelectorAll('.gb').forEach((b,i) => b.classList.toggle('active',[1,2,3][i]===cols));
     }
-
-    // Clock
     function tick() {
         const n = new Date();
         document.getElementById('liveClock').textContent = n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
         document.getElementById('liveDate').textContent  = n.toLocaleDateString('en-US',{weekday:'short',day:'2-digit',month:'long',year:'numeric'});
     }
     tick(); setInterval(tick, 1000);
-
-    // Camera search
     function filterCams(q) {
         document.querySelectorAll('.citem').forEach(el => {
             el.style.display = el.querySelector('.cname').textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
         });
     }
-
     document.getElementById('gridToggle').style.display = 'flex';
 </script>
 </body>

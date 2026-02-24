@@ -50,3 +50,22 @@ OUTPUT_VIDEO_PATH = "output_videos/detection_output.mp4"
 # Frame numbers to extract for pre-classification (1-indexed)
 CLASSIFIER_FRAMES = [1, 15, 30]
 GROQ_MODEL = "meta-llama/llama-4-maverick-17b-128e-instruct"
+
+# ==================== RTSP CAMERAS ====================
+# Set URL to "" to mark camera as unconfigured (will show placeholder tile).
+# camera_id keys must stay cctv_01 … cctv_06 — the dashboard derives tile
+# labels and stream endpoints directly from these keys.
+RTSP_CAMERAS = {
+    "cctv_01": "rtsp://admin:Honey@123@192.168.1.10:554/1/2",   # e.g. "rtsp://admin:pass@192.168.1.101:554/stream"
+    "cctv_02": "",
+    "cctv_03": "",
+    "cctv_04": "",
+    "cctv_05": "",
+    "cctv_06": "",
+}
+# When True, the dashboard auto-starts all configured RTSP streams on page load.
+# Can be toggled at runtime via POST /rtsp/autostart/toggle without restarting the server.
+RTSP_AUTO_START = True
+
+# Seconds to wait before marking a dropped stream as FAILED (no auto-reconnect).
+RTSP_CONNECT_TIMEOUT = 10

@@ -1,0 +1,105 @@
+[
+  {
+    "task_id": "c7198cfa",
+    "video_name": "tmpaa0fib9t.mp4",
+    "status": "completed",
+    "classifier_output": {
+      "detected": [
+        "fire",
+        "smoke"
+      ],
+      "scenario": "wildfire spreading near a forest"
+    },
+    "selected_models": [
+      "fire_smoke"
+    ],
+    "results": {
+      "video_processed": true,
+      "models_used": [
+        "fire_smoke"
+      ],
+      "output_video": "output_videos\\c7198cfa_output.mp4",
+      "timestamp": "2026-02-20T17:26:18.042217"
+    },
+    "started_at": "2026-02-20T17:19:50.524976",
+    "completed_at": "2026-02-20T17:26:18.042217",
+    "error": null
+  },
+  {
+    "task_id": "e9764c4f",
+    "video_name": "tmpdhtvw0pw.mp4",
+    "status": "stopped",
+    "classifier_output": {
+      "detected": [
+        "fire",
+        "smoke"
+      ],
+      "scenario": "wildfire spreading near a forest"
+    },
+    "selected_models": [
+      "fire_smoke"
+    ],
+    "results": {
+      "video_processed": true,
+      "models_used": [
+        "fire_smoke"
+      ],
+      "output_video": "output_videos\\e9764c4f_output.mp4",
+      "timestamp": "2026-02-20T17:32:03.463531"
+    },
+    "started_at": "2026-02-20T17:31:05.035606",
+    "completed_at": "2026-02-20T17:32:03.463531",
+    "error": null
+  },
+  {
+    "task_id": "d390c6d8",
+    "video_name": "tmpe55q6qxx.mp4",
+    "status": "stopped",
+    "classifier_output": {
+      "detected": [
+        "deer"
+      ],
+      "scenario": "two deer interacting in a grassy field"
+    },
+    "selected_models": [
+      "deer"
+    ],
+    "results": {
+      "video_processed": true,
+      "models_used": [
+        "deer"
+      ],
+      "output_video": "output_videos\\d390c6d8_output.mp4",
+      "timestamp": "2026-02-23T16:35:31.448364"
+    },
+    "started_at": "2026-02-23T16:35:03.485375",
+    "completed_at": "2026-02-23T16:35:31.448364",
+    "error": null
+  },
+  {
+    "task_id": "20e70223",
+    "video_name": "tmpq7w_wd3z.mp4",
+    "status": "stopped",
+    "classifier_output": {
+      "detected": [
+        "fire",
+        "smoke"
+      ],
+      "scenario": "wildfire spreading near a forest"
+    },
+    "selected_models": [
+      "fire_smoke"
+    ],
+    "results": {
+      "video_processed": true,
+      "models_used": [
+        "fire_smoke"
+      ],
+      "output_video": "output_videos\\20e70223_output.mp4",
+      "timestamp": "2026-02-23T16:37:04.144053"
+    },
+    "started_at": "2026-02-23T16:35:46.816262",
+    "completed_at": "2026-02-23T16:37:04.144053",
+    "error": null
+  }
+]

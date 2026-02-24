@@ -12,7 +12,7 @@ MODEL_CONFIGS = {
     "deer": {
         "model_path": "weights/deer_v2_best.pt",
         "target_classes": ["deer"],
-        "polygon_file": "animal_boundary/deer1_boundary.json",
+        "polygon_file": "",
     },
     "elephant": {
         "model_path": "weights/elephant.pt",
@@ -27,12 +27,27 @@ MODEL_CONFIGS = {
     "leopard": {
         "model_path": "weights/leopard_v1_best.pt",
         "target_classes": ["leopard"],
-        "polygon_file": "animal_boundary/leopard_boundary.json",
+        "polygon_file": None,
     },
     "tiger": {
         "model_path": "weights/tiger_best.pt",
         "target_classes": ["tiger"],
         "polygon_file": "animal_boundary/tiger_boundary.json",
+    },
+    "person": {
+        "model_path": "weights/yolo26s.pt",
+        "target_classes": ["person"],
+        "polygon_file": None,
+    },
+    "necklace": {
+        "model_path": "weights/Necklace_v2.pt",
+        "target_classes": ["necklace"],
+        "polygon_file": None,
+    },
+    "earrings": {
+        "model_path": "weights/earrings.pt",
+        "target_classes": ["earrings"],
+        "polygon_file": None,
     },
 }
 
@@ -57,6 +72,7 @@ GROQ_MODEL = "meta-llama/llama-4-maverick-17b-128e-instruct"
 # labels and stream endpoints directly from these keys.
 RTSP_CAMERAS = {
     "cctv_01": "rtsp://admin:Honey@123@192.168.1.10:554/1/2",   # e.g. "rtsp://admin:pass@192.168.1.101:554/stream"
+    # "cctv_02": "rtsp://admin:Honey@123@192.168.1.10:554/2/2",
     "cctv_02": "",
     "cctv_03": "",
     "cctv_04": "",

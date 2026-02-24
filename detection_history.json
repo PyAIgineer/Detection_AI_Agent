@@ -101,5 +101,227 @@
     "started_at": "2026-02-23T16:35:46.816262",
     "completed_at": "2026-02-23T16:37:04.144053",
     "error": null
+  },
+  {
+    "task_id": "220bfb37",
+    "video_name": "tmppr6gq1n3.mp4",
+    "status": "completed",
+    "classifier_output": {
+      "detected": [
+        "fire",
+        "leopard",
+        "deer",
+        "person"
+      ],
+      "scenario": "a man and animals fleeing from a forest fire"
+    },
+    "selected_models": [
+      "fire_smoke",
+      "leopard"
+    ],
+    "results": {
+      "video_processed": true,
+      "models_used": [
+        "fire_smoke",
+        "leopard"
+      ],
+      "output_video": "output_videos\\220bfb37_output.mp4",
+      "timestamp": "2026-02-24T11:33:00.682672"
+    },
+    "started_at": "2026-02-24T11:31:21.205151",
+    "completed_at": "2026-02-24T11:33:00.682672",
+    "error": null
+  },
+  {
+    "task_id": "0aadbfb8",
+    "video_name": "tmp4u26xyde.mp4",
+    "status": "completed",
+    "classifier_output": {
+      "detected": [
+        "person",
+        "leopard",
+        "deer",
+        "fire"
+      ],
+      "scenario": "a man and animals fleeing from a forest fire"
+    },
+    "selected_models": [
+      "person",
+      "leopard",
+      "deer",
+      "fire_smoke"
+    ],
+    "results": {
+      "video_processed": true,
+      "models_used": [
+        "person",
+        "leopard",
+        "deer",
+        "fire_smoke"
+      ],
+      "output_video": "output_videos\\0aadbfb8_output.mp4",
+      "timestamp": "2026-02-24T12:33:49.670274"
+    },
+    "started_at": "2026-02-24T12:31:28.732042",
+    "completed_at": "2026-02-24T12:33:49.670274",
+    "error": null
+  },
+  {
+    "task_id": "76c5f5b9",
+    "video_name": "tmp2pn_7isw.mp4",
+    "status": "completed",
+    "classifier_output": {
+      "detected": [
+        "fire",
+        "leopard",
+        "deer",
+        "person"
+      ],
+      "scenario": "a man and animals running from a forest fire"
+    },
+    "selected_models": [
+      "fire_smoke",
+      "leopard",
+      "deer",
+      "person"
+    ],
+    "results": {
+      "video_processed": true,
+      "models_used": [
+        "fire_smoke",
+        "leopard",
+        "deer",
+        "person"
+      ],
+      "output_video": "output_videos\\76c5f5b9_output.mp4",
+      "timestamp": "2026-02-24T14:41:29.478339"
+    },
+    "started_at": "2026-02-24T14:39:10.690500",
+    "completed_at": "2026-02-24T14:41:29.478339",
+    "error": null
+  },
+  {
+    "task_id": "7141de47",
+    "video_name": "tmp6wd89uoh.mp4",
+    "status": "completed",
+    "classifier_output": {
+      "detected": [
+        "person",
+        "necklace"
+      ],
+      "scenario": "people shopping for jewelry in a store | Jewellery: Multiple gold necklaces visible in display cases"
+    },
+    "selected_models": [
+      "person",
+      "necklace"
+    ],
+    "results": {
+      "video_processed": true,
+      "models_used": [
+        "person",
+        "necklace"
+      ],
+      "output_video": "output_videos\\7141de47_output.mp4",
+      "timestamp": "2026-02-24T16:24:09.955389"
+    },
+    "started_at": "2026-02-24T16:22:23.792607",
+    "completed_at": "2026-02-24T16:24:09.955389",
+    "error": null
+  },
+  {
+    "task_id": "7b504727",
+    "video_name": "tmph6nnb5si.mp4",
+    "status": "completed",
+    "classifier_output": {
+      "detected": [
+        "fire",
+        "leopard",
+        "deer",
+        "person"
+      ],
+      "scenario": "a man and animals running from a forest fire"
+    },
+    "selected_models": [
+      "fire_smoke",
+      "leopard",
+      "deer",
+      "person"
+    ],
+    "results": {
+      "video_processed": true,
+      "models_used": [
+        "fire_smoke",
+        "leopard",
+        "deer",
+        "person"
+      ],
+      "output_video": "output_videos\\7b504727_output.mp4",
+      "timestamp": "2026-02-24T16:36:43.094246"
+    },
+    "started_at": "2026-02-24T16:34:14.362689",
+    "completed_at": "2026-02-24T16:36:43.094246",
+    "error": null
+  },
+  {
+    "task_id": "43c7129a",
+    "video_name": "tmplmnic1o2.mp4",
+    "status": "stopped",
+    "classifier_output": {
+      "detected": [
+        "fire",
+        "leopard",
+        "deer",
+        "person"
+      ],
+      "scenario": "a man and animals running from a forest fire"
+    },
+    "selected_models": [
+      "fire_smoke",
+      "leopard",
+      "deer",
+      "person"
+    ],
+    "results": {
+      "video_processed": true,
+      "models_used": [
+        "fire_smoke",
+        "leopard",
+        "deer",
+        "person"
+      ],
+      "output_video": "output_videos\\43c7129a_output.mp4",
+      "timestamp": "2026-02-24T16:42:10.697189"
+    },
+    "started_at": "2026-02-24T16:40:46.873849",
+    "completed_at": "2026-02-24T16:42:10.697189",
+    "error": null
+  },
+  {
+    "task_id": "d5a99ca4",
+    "video_name": "tmp_jqp8l8d.mp4",
+    "status": "stopped",
+    "classifier_output": {
+      "detected": [
+        "person",
+        "necklace"
+      ],
+      "scenario": "people shopping for jewelry in a store | Jewellery: multiple necklaces visible on display"
+    },
+    "selected_models": [
+      "person",
+      "necklace"
+    ],
+    "results": {
+      "video_processed": true,
+      "models_used": [
+        "person",
+        "necklace"
+      ],
+      "output_video": "output_videos\\d5a99ca4_output.mp4",
+      "timestamp": "2026-02-24T16:43:51.883429"
+    },
+    "started_at": "2026-02-24T16:43:03.929019",
+    "completed_at": "2026-02-24T16:43:51.883429",
+    "error": null
   }
 ]

@@ -19,6 +19,7 @@ from pydantic import BaseModel
 import uvicorn
 
 from video_classifier import classify_video
+from jewellery_classifier import classify_jewellery
 from prediction_agent import AlertAgent
 from predict import run_detection
 from config import VIDEO_PATH, OUTPUT_VIDEO_PATH, MODEL_CONFIGS, RTSP_CAMERAS
@@ -120,7 +121,20 @@ def run_detection_task(task: PredictionTask, stop_event: threading.Event):
         sys.stderr = log_capture
 
         task.logs.append(f"[{datetime.now().strftime('%H:%M:%S')}]  ── STEP 1/3: Video Classification ──")
-        classifier_output = classify_video(task.video_path)
+        wildlife_output    = classify_video(task.video_path)
+        jewellery_output   = classify_jewellery(task.video_path)
+
+        # Merge both classifiers — deduplicate detected classes
+        merged_detected = list(dict.fromkeys(
+            wildlife_output.get("detected", []) + jewellery_output.get("detected", [])
+        ))
+        classifier_output = {
+            "detected": merged_detected,
+            "scenario": wildlife_output.get("scenario", "") + (
+                f" | Jewellery: {jewellery_output['scenario']}"
+                if jewellery_output.get("detected") else ""
+            )
+        }
         task.classifier_output = classifier_output
         task.logs.append(
             f"[{datetime.now().strftime('%H:%M:%S')}]  ✔ Classifier done → {classifier_output['detected']}"
@@ -435,9 +449,13 @@ if __name__ == "__main__":
     import logging
 
     class FilterNoise(logging.Filter):
+        SILENT_PATHS = ("/analytics", "/rtsp/status", "GET /status/", "GET /logs/")
+
         def filter(self, record):
             msg = record.getMessage()
-            return "GET /analytics" not in msg and "GET /rtsp/status" not in msg
+            if any(path in msg for path in self.SILENT_PATHS):
+                return "200" not in msg
+            return True
 
     logging.getLogger("uvicorn.access").addFilter(FilterNoise())
 

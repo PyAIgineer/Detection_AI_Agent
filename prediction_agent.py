@@ -22,28 +22,36 @@ sys.stderr.reconfigure(line_buffering=True)
 
 
 # ==================== ROUTING SYSTEM PROMPT ====================
-ROUTING_SYSTEM_PROMPT = """You are an AI model router for a surveillance detection system.
+ROUTING_SYSTEM_PROMPT = """You are an AI model router for a wildlife, fire, and jewellery surveillance system.
 
-You receive a JSON output from a video classifier that lists what was detected in the video.
+You will receive a JSON object from a video classifier containing a "detected" list of observed categories.
 
-Available individual models (each detects ONE category):
-- "deer"       : detects deer
-- "elephant"   : detects elephant
-- "fire_smoke" : detects fire and smoke
-- "leopard"    : detects leopard
-- "tiger"      : detects tiger
+Available models:
+- "deer"       → detects deer
+- "elephant"   → detects elephant
+- "fire_smoke" → detects fire and smoke
+- "leopard"    → detects leopard
+- "tiger"      → detects tiger
+- "person"     → detects person / human
+- "necklace"   → detects necklace
+- "earrings"   → detects earrings
 
-Rules:
-- Select ALL models that match what was detected. You can select multiple.
-- If "fire" or "smoke" detected → include "fire_smoke"
-- If "deer" detected → include "deer"
-- If "elephant" detected → include "elephant"
-- If "leopard" detected → include "leopard"
-- If "tiger" detected → include "tiger"
-- If "person" detected but no matching animal model → still select the closest animal model (e.g. if deer + person, select "deer")
-- If nothing clear detected → select ["elephant"] as safe default
+Selection rules:
+1. For each item in "detected", select its matching model independently:
+   - "fire" or "smoke"   → select "fire_smoke"
+   - "deer"              → select "deer"
+   - "elephant"          → select "elephant"
+   - "leopard"           → select "leopard"
+   - "tiger"             → select "tiger"
+   - "person" or "human" → select "person"
+   - "necklace"          → select "necklace"
+   - "earrings"          → select "earrings"
 
-Respond ONLY in this JSON format:
+2. Select ALL matching models. Every detected category gets its own model. Never skip one because another was also detected.
+
+3. If the "detected" list is empty or nothing matched → select ["elephant"] as the safe default.
+
+Respond ONLY in this exact JSON format, no extra text:
 {
     "model_keys": ["key1", "key2"],
     "reason": "short explanation"
@@ -70,9 +78,9 @@ You will receive raw detection data and must respond ONLY in this JSON format:
 Severity and action rules:
 - fire, smoke detected → critical → escalate
 - dangerous/wild animal (elephant, leopard, tiger, lion, bear) entering boundary → critical → escalate
+- person entering restricted boundary → critical → escalate
 - deer entering boundary → high → email
-- person entering restricted boundary → high → email
-- person detected in frame (no boundary) → medium → email
+- person detected in frame (no boundary) → high → email
 - animal detected in frame (no boundary) → medium → email
 - any detection with confidence < 0.5 → low → log_only
 - unknown or unclear object → low → log_only
@@ -125,12 +133,8 @@ class AlertAgent:
         print(f"[AGENT-BRAIN] {json.dumps(classifier_output)}", flush=True)
         print("[AGENT-BRAIN] Making model routing decision...", flush=True)
 
-        if self.openai_client:
-            model_keys = self._llm_routing_decision(classifier_output)
-        else:
-            model_keys = self._fallback_routing_decision(classifier_output)
+        model_keys = self._llm_routing_decision(classifier_output)
 
-        # Validate and resolve all keys
         valid_keys = []
         for key in model_keys:
             if key in MODEL_CONFIGS:
@@ -153,54 +157,21 @@ class AlertAgent:
 
     def _llm_routing_decision(self, classifier_output):
         """Use GPT to decide which models to run — returns list of model keys"""
-        try:
-            response = self.openai_client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": ROUTING_SYSTEM_PROMPT},
-                    {"role": "user", "content": f"Classifier output:\n{json.dumps(classifier_output, indent=2)}"}
-                ],
-                max_tokens=150,
-                temperature=0.1
-            )
+        response = self.openai_client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": ROUTING_SYSTEM_PROMPT},
+                {"role": "user", "content": f"Classifier output:\n{json.dumps(classifier_output, indent=2)}"}
+            ],
+            max_tokens=200,
+            temperature=0.1
+        )
 
-            raw = response.choices[0].message.content.strip()
-            decision = json.loads(raw)
+        raw = response.choices[0].message.content.strip()
+        decision = json.loads(raw)
 
-            keys = decision.get("model_keys", [])
-            print(f"[AGENT-BRAIN] LLM routing → {keys} | Reason: {decision.get('reason', '')}", flush=True)
-            return keys
-
-        except Exception as e:
-            print(f"[AGENT-BRAIN] GPT routing error: {e} - using fallback", flush=True)
-            return self._fallback_routing_decision(classifier_output)
-
-    def _fallback_routing_decision(self, classifier_output):
-        """Rule-based routing — returns list of model keys"""
-        detected = [d.lower() for d in classifier_output.get("detected", [])]
-
-        animal_map = {
-            "deer":     "deer",
-            "elephant": "elephant",
-            "leopard":  "leopard",
-            "tiger":    "tiger",
-        }
-
-        keys = []
-
-        if "fire" in detected or "smoke" in detected:
-            keys.append("fire_smoke")
-
-        for animal, key in animal_map.items():
-            if animal in detected:
-                keys.append(key)
-
-        if not keys:
-            keys = ["elephant"]  # safe default
-            print("[AGENT-BRAIN] Fallback: nothing matched, defaulting to 'elephant'", flush=True)
-        else:
-            print(f"[AGENT-BRAIN] Fallback routing → {keys}", flush=True)
-
+        keys = decision.get("model_keys", [])
+        print(f"[AGENT-BRAIN] LLM routing → {keys} | Reason: {decision.get('reason', '')}", flush=True)
         return keys
 
 

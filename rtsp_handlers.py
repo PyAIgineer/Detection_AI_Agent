@@ -178,19 +178,22 @@ def _rtsp_worker(camera_id: str, rtsp_url: str, model_keys: list, state: dict):
         loaded_models   = load_models(selected_models)
         model_label     = " + ".join(k for k, *_ in loaded_models)
 
-        # ── Load boundary polygon (first model that has one) ─────
-        polygon_file = next(
-            (cfg.get("polygon_file") for _, cfg in selected_models if cfg.get("polygon_file")),
-            None
-        )
-        polygon = load_polygon(polygon_file)
-        tracker = None
-        if polygon is not None:
-            if RESIZE_RATIO != 1.0:
-                polygon = (polygon * RESIZE_RATIO).astype(np.int32)
-            tracker = BoundaryTracker(polygon, model_label)
-        else:
-            logger.info(f"[RTSP] {camera_id}: No boundary polygon — crossing alerts disabled")
+        # ── Load per-model polygon + tracker ─────────────────────
+        # Each model gets its own polygon and boundary tracker
+        model_polygons = {}   # model_key → np.array or None
+        model_trackers = {}   # model_key → BoundaryTracker or None
+        for model_key, cfg in selected_models:
+            pfile   = cfg.get("polygon_file")
+            polygon = load_polygon(pfile)
+            if polygon is not None:
+                if RESIZE_RATIO != 1.0:
+                    polygon = (polygon * RESIZE_RATIO).astype(np.int32)
+                model_polygons[model_key] = polygon
+                model_trackers[model_key] = BoundaryTracker(polygon, model_key)
+                logger.info(f"[RTSP] {camera_id}: Polygon loaded for '{model_key}'")
+            else:
+                model_polygons[model_key] = None
+                model_trackers[model_key] = None
 
         # ── Open RTSP stream ─────────────────────────────────────
         cap = cv2.VideoCapture(rtsp_url)
@@ -215,20 +218,31 @@ def _rtsp_worker(camera_id: str, rtsp_url: str, model_keys: list, state: dict):
 
         fps_start  = time.time()
         fps_frames = 0
+        consecutive_fails = 0
+        MAX_CONSEC_FAILS  = 10  # skip up to 10 bad/corrupted frames before reconnecting
 
         # ── Frame detection loop ─────────────────────────────────
         while not state["stop_flag"].is_set():
             ret, frame = cap.read()
-
+            
             if not ret:
-                logger.warning(f"[RTSP] {camera_id}: Frame read failed — attempting reconnect")
+                consecutive_fails += 1
+                if consecutive_fails < MAX_CONSEC_FAILS:
+                    # Likely a corrupted H264 packet — skip and keep going
+                    time.sleep(0.02)
+                    continue
+                # Too many consecutive failures — real disconnect, reconnect
+                logger.warning(f"[RTSP] {camera_id}: {consecutive_fails} consecutive frame failures — reconnecting")
                 cap.release()
                 time.sleep(1.0)
                 cap = cv2.VideoCapture(rtsp_url)
                 if not cap.isOpened():
                     state["error"] = "Stream dropped and reconnect failed"
                     break
+                consecutive_fails = 0
                 continue
+
+            consecutive_fails = 0 # reset on any good frame
 
             if RESIZE_RATIO != 1.0:
                 frame = cv2.resize(frame, (width, height))
@@ -240,8 +254,12 @@ def _rtsp_worker(camera_id: str, rtsp_url: str, model_keys: list, state: dict):
             all_detections = []
 
             for model_key, model, target_ids, all_names in loaded_models:
+                polygon = model_polygons.get(model_key)
+                tracker = model_trackers.get(model_key)
+
                 results = model.predict(frame, conf=CONF_THRESHOLD,
                                         iou=IOU_THRESHOLD, verbose=False)
+                model_dets = []
                 for r in results:
                     if r.boxes is None:
                         continue
@@ -253,7 +271,9 @@ def _rtsp_worker(camera_id: str, rtsp_url: str, model_keys: list, state: dict):
                         x1, y1, x2, y2 = map(int, r.boxes.xyxy[i])
                         conf     = float(r.boxes.conf[i])
                         cls_name = all_names[cls_id]
-                        all_detections.append(((x1, y1, x2, y2), cls_id, cls_name, conf))
+                        det      = ((x1, y1, x2, y2), cls_id, cls_name, conf)
+                        model_dets.append(det)
+                        all_detections.append(det)
 
                         if polygon is not None:
                             centroid = (int((x1 + x2) / 2), y2)
@@ -267,21 +287,22 @@ def _rtsp_worker(camera_id: str, rtsp_url: str, model_keys: list, state: dict):
                                     (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX,
                                     0.55, color, 2)
 
+                # ── Per-model boundary overlay + crossing alerts ──
+                if polygon is not None:
+                    overlay = frame.copy()
+                    cv2.fillPoly(overlay, [polygon], (0, 0, 255))
+                    frame = cv2.addWeighted(overlay, 0.2, frame, 0.8, 0)
+                    cv2.polylines(frame, [polygon], True, (0, 0, 255), 3)
+
+                    if tracker:
+                        crossed = tracker.update(model_dets)
+                        for obj in crossed:
+                            cv2.putText(frame,
+                                        f"!!! {obj['name'].upper()} CROSSED [{model_key}] !!!",
+                                        (50, 50), cv2.FONT_HERSHEY_SIMPLEX,
+                                        1.0, (0, 0, 255), 3)
+
             state["detections"] = len(all_detections)
-
-            # ── Boundary overlay + crossing alerts ───────────────
-            if polygon is not None:
-                overlay = frame.copy()
-                cv2.fillPoly(overlay, [polygon], (0, 0, 255))
-                frame = cv2.addWeighted(overlay, 0.2, frame, 0.8, 0)
-                cv2.polylines(frame, [polygon], True, (0, 0, 255), 3)
-
-                if tracker:
-                    crossed = tracker.update(all_detections)
-                    for obj in crossed:
-                        cv2.putText(frame, f"!!! {obj['name'].upper()} CROSSED !!!",
-                                    (50, 50), cv2.FONT_HERSHEY_SIMPLEX,
-                                    1.0, (0, 0, 255), 3)
 
             # ── HUD ───────────────────────────────────────────────
             elapsed = time.time() - fps_start

@@ -4,6 +4,7 @@ import sys
 import time
 
 from video_classifier import classify_video
+from jewellery_classifier import classify_jewellery
 from predict import run_detection
 from prediction_agent import AlertAgent
 
@@ -29,10 +30,22 @@ def main():
     agent = AlertAgent(ready_event=agent_ready)
     print("[LAUNCHER] ✓ Agent initialized\n", flush=True)
 
-    # ── Step 3: Run video classifier ────────────────────────────
-    print("[LAUNCHER] Step 3/5: Running video pre-classifier...", flush=True)
-    classifier_output = classify_video()
-    print(f"[LAUNCHER] ✓ Classifier done → detected: {classifier_output['detected']}\n", flush=True)
+    # ── Step 3: Run video classifiers ───────────────────────────
+    print("[LAUNCHER] Step 3/5: Running video pre-classifiers...", flush=True)
+    wildlife_output  = classify_video()
+    jewellery_output = classify_jewellery()
+
+    merged_detected = list(dict.fromkeys(
+        wildlife_output.get("detected", []) + jewellery_output.get("detected", [])
+    ))
+    classifier_output = {
+        "detected": merged_detected,
+        "scenario": wildlife_output.get("scenario", "") + (
+            f" | Jewellery: {jewellery_output['scenario']}"
+            if jewellery_output.get("detected") else ""
+        )
+    }
+    print(f"[LAUNCHER] ✓ Classifiers done → detected: {classifier_output['detected']}\n", flush=True)
 
     # ── Step 4: Agent decides which models to run ────────────────
     print("[LAUNCHER] Step 4/5: Agent making model routing decision...", flush=True)

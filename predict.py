@@ -60,15 +60,25 @@ def get_line_side(point, polygon):
 
 
 # ==================== EVENT TRACKER ====================
+JEWELLERY_CLASSES = {"necklace", "earrings"}
+
 class DetectionEventTracker:
-    def __init__(self):
-        self.detection_alert_sent = False
+    def __init__(self, active_model_keys=None):
+        self.alerted_classes = set()
         self.crossing_alerts_sent = 0
         self.max_crossing_alerts = 1
 
-    def should_alert_detection(self, detection_count):
-        if detection_count > 0 and not self.detection_alert_sent:
-            self.detection_alert_sent = True
+        # If any jewellery model is running, person is also silent — normal in a store
+        active_model_keys = active_model_keys or []
+        jewellery_active = any(k in JEWELLERY_CLASSES for k in active_model_keys)
+        self.silent_classes = JEWELLERY_CLASSES | ({"person"} if jewellery_active else set())
+
+    def should_alert_detection(self, class_name):
+        """Returns True the FIRST time a given non-silent class is seen."""
+        if class_name in self.silent_classes:
+            return False
+        if class_name not in self.alerted_classes:
+            self.alerted_classes.add(class_name)
             return True
         return False
 
@@ -154,11 +164,9 @@ class BoundaryTracker:
 
 # ==================== MODEL LOADER ====================
 def load_models(selected_models):
-    """
-    Load all selected YOLO models.
+    """Load all selected YOLO models.
     selected_models: list of (model_key, model_config) from agent.
-    Returns list of (model_key, yolo_model, target_class_ids, all_names).
-    """
+    Returns list of (model_key, yolo_model, target_class_ids, all_names).  """
     loaded = []
 
     for model_key, cfg in selected_models:
@@ -188,15 +196,13 @@ def load_models(selected_models):
 
 # ==================== MAIN DETECTION ====================
 def run_detection(event_queue, selected_models=None, video_path=None, stop_event=None):
-    """
-    Main detection process.
+    """Main detection process.
 
     Parameters:
         event_queue    : Queue to send detection events to the agent.
         selected_models: List of (model_key, model_config) tuples from agent.
         video_path     : Path to the video file to process. Falls back to config.VIDEO_PATH.
-        stop_event     : threading.Event — detection loop exits when this is set.
-    """
+        stop_event     : threading.Event — detection loop exits when this is set. """
 
     # ── Resolve video path ───────────────────────────────────────
     # IMPORTANT: Always use the passed video_path (uploaded file).
@@ -229,7 +235,8 @@ def run_detection(event_queue, selected_models=None, video_path=None, stop_event
         tracker = BoundaryTracker(polygon, model_label)
 
     # ── Event tracker ────────────────────────────────────────────
-    event_tracker = DetectionEventTracker()
+    active_keys = [key for key, _ in selected_models] if selected_models else []
+    event_tracker = DetectionEventTracker(active_model_keys=active_keys)
 
     # ── Open video ───────────────────────────────────────────────
     cap = cv2.VideoCapture(active_video_path)
@@ -321,22 +328,34 @@ def run_detection(event_queue, selected_models=None, video_path=None, stop_event
                         cv2.putText(frame, f"{cls_name} {conf:.2f}", (x1, y1 - 5),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
-            # ── Detection alert (once per video) ──────────────────
-            if event_tracker.should_alert_detection(len(all_detections)):
-                first = all_detections[0]
-                event = {
-                    'class_name': first[2],
-                    'confidence': round(first[3], 2),
-                    'count': len(all_detections),
-                    'all_classes': list({d[2] for d in all_detections}),
-                    'location': 'in_frame',
-                    'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
-                    'frame': frame_count
-                }
-                event_queue.put(event)
-                time.sleep(0.01)
-                total_events += 1
-                print(f"[DETECTION] Event sent: {first[2]} detected ({len(all_detections)} objects)", flush=True)
+            # ── Detection alert — one email per frame batch of new classes ──
+            if all_detections:
+                all_classes_in_frame = list({d[2] for d in all_detections})
+
+                # Collect all classes appearing for the first time in this frame
+                new_classes = [
+                    cls for cls in all_classes_in_frame
+                    if event_tracker.should_alert_detection(cls)
+                ]
+
+                if new_classes:
+                    # Pick highest-confidence detection across all new classes
+                    new_detections = [d for d in all_detections if d[2] in new_classes]
+                    best = max(new_detections, key=lambda d: d[3])
+                    event = {
+                        'class_name': new_classes[0],        # primary class (highest confidence)
+                        'all_new_classes': new_classes,       # every new class in this batch
+                        'confidence': round(best[3], 2),
+                        'count': len(new_detections),
+                        'all_classes': all_classes_in_frame,
+                        'location': 'in_frame',
+                        'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
+                        'frame': frame_count
+                    }
+                    event_queue.put(event)
+                    time.sleep(0.01)
+                    total_events += 1
+                    print(f"[DETECTION] Event sent: {new_classes} detected ({len(new_detections)} objects)", flush=True)
 
             # ── Boundary crossing ─────────────────────────────────
             if polygon is not None:
